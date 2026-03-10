@@ -89,7 +89,7 @@ def get_product_info(shop, product_key):
     try:
         r = _session.post(url, json=payload, headers=headers)
         data = r.json()
-        print(f"DEBUG: product response: {data}")
+        # print(f"DEBUG: product response: {data}")
         basic = safe_get(data[0], "data", "pdpMainInfo", "data", "basicInfo")
         if not basic or not basic.get("productID"):
             return None
@@ -133,7 +133,7 @@ def get_reviews(product_id, page=1, limit=50):
     try:
         r = _session.post(url, json=payload, headers=headers)
         data = r.json()
-        print(f"DEBUG: review response: {data}")
+        # print(f"DEBUG: review response: {data}")
         reviews = safe_get(data[0], "data", "productrevGetProductReviewList", "list")
         return reviews or []
     except Exception as e:
@@ -150,7 +150,7 @@ def scrape_product(url):
         return get_mock_data(url)
     
     product_id = info["productID"]
-    reviews_data = get_reviews(product_id, page=1, limit=30)
+    reviews_data = get_reviews(product_id, page=1, limit=50)
     
     info["reviews"] = [r.get("message") for r in reviews_data if r.get("message")]
     return info
