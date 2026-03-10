@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Comparator | Bandingkan Produk</title>
+    <meta name="description" content="Aplikasi pembanding sentimen produk Tokopedia berdasarkan komen pembeli.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</head>
+<body>
+    <div class="background-blur"></div>
+    
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <span>Sentiment<b>AI</b></span>
+            </div>
+            <p class="tagline">Bandingkan kualitas produk berdasarkan suara pembeli</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="search-section">
+            <div class="card search-card">
+                <h2>Bandingkan Dua Produk</h2>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="url1">URL Produk Tokopedia 1</label>
+                        <input type="text" id="url1" placeholder="https://www.tokopedia.com/..." class="modern-input">
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="input-group">
+                        <label for="url2">URL Produk Tokopedia 2</label>
+                        <input type="text" id="url2" placeholder="https://www.tokopedia.com/..." class="modern-input">
+                    </div>
+                </div>
+                <button id="compare-btn" class="primary-btn">
+                    <i class="fas fa-bolt"></i> Analisis Sekarang
+                </button>
+            </div>
+        </section>
+
+        <section id="result-section" class="hidden">
+            <div class="result-header">
+                <h3>Hasil Perbandingan</h3>
+                <div id="winner-badge" class="winner-badge"></div>
+            </div>
+
+            <div class="comparison-grid">
+                <!-- Product 1 Card -->
+                <div class="card result-card" id="p1-card">
+                    <div class="product-info">
+                        <h4 id="p1-name" class="name">Nama Produk 1</h4>
+                        <p id="p1-shop" class="shop">Toko Produk 1</p>
+                        <div class="rating-box">
+                            <span id="p1-rating" class="rating">4.5</span>
+                            <span class="stars">⭐⭐⭐⭐⭐</span>
+                            <span id="p1-reviews-count" class="reviews-count">(500+ ulasan)</span>
+                        </div>
+                    </div>
+                    <div class="sentiment-results">
+                        <div id="p1-chart"></div>
+                        <div class="sentiment-stats">
+                            <div class="stat">
+                                <span class="label">Positif</span>
+                                <span id="p1-pos" class="val pos">0%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Netral</span>
+                                <span id="p1-neu" class="val neu">0%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Negatif</span>
+                                <span id="p1-neg" class="val neg">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2 Card -->
+                <div class="card result-card" id="p2-card">
+                    <div class="product-info">
+                        <h4 id="p2-name" class="name">Nama Produk 2</h4>
+                        <p id="p2-shop" class="shop">Toko Produk 2</p>
+                        <div class="rating-box">
+                            <span id="p2-rating" class="rating">4.2</span>
+                            <span class="stars">⭐⭐⭐⭐⭐</span>
+                            <span id="p2-reviews-count" class="reviews-count">(300+ ulasan)</span>
+                        </div>
+                    </div>
+                    <div class="sentiment-results">
+                        <div id="p2-chart"></div>
+                        <div class="sentiment-stats">
+                            <div class="stat">
+                                <span class="label">Positif</span>
+                                <span id="p2-pos" class="val pos">0%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Netral</span>
+                                <span id="p2-neu" class="val neu">0%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Negatif</span>
+                                <span id="p2-neg" class="val neg">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card comparison-summary">
+                <h4>Kesimpulan Analisis</h4>
+                <p id="summary-text">...</p>
+            </div>
+        </section>
+
+        <div id="loader" class="loader-overlay hidden">
+            <div class="loader-content">
+                <div class="spinner"></div>
+                <p>Menganalisis ulasan, mohon tunggu...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

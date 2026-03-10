@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+.Python
+env
+venv
+/instance
+pip-wheel-metadata
+.tox
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.egg-info/
+.pytest_cache
+
+# Flask-specific
+instance/
+.webassets-cache
+
+# IDE-specific (optional, common for PyCharm/VS Code)
+.idea/
+.vscode/
+
+# Environment variables
+.env
+*.env
