@@ -65,22 +65,68 @@ def get_sentiment_summary(comments):
             # Add placeholders for failed batch
             all_results.extend([[{"label": "Neutral", "score": 0.0}]] * len(batch))
 
-    for res_list in all_results:
+    # Lists to store samples
+    neg_reviews_sample = []
+    pos_reviews_sample = []
+    
+    # Frequency counters
+    neg_word_freq = {}
+    pos_word_freq = {}
+    
+    NEG_KEYWORDS_LIST = {
+        "jelek", "buruk", "kecewa", "lambat", "lama", "palsu", "kw", "pecah", 
+        "rusak", "mati", "mahal", "tidak", "kurang", "bohong", "penipu", "rugi", 
+        "parah", "nyesel", "menyesal", "cacat", "error", "salah", "beda", "tipu",
+        "kecewa", "mengecewakan", "longgar", "lepas", "copot", "patah", "lecet",
+        "kotor", "bau", "bekas", "second", "tipis", "kasar", "panas", "berisik",
+        "lemot", "hang", "crash", "bocor", "sobek", "bolong", "luntur", "tolol",
+        "bego", "goblok", "anjing", "bangsat", "males", "nyesal", "nyesel", 
+        "kapok", "parah", "hancur", "ancur", "kecewa", "zonk", "sampah"
+    }
+    
+    POS_KEYWORDS_LIST = {
+        "bagus", "baik", "mantap", "keren", "puas", "cepat", "original", "asli",
+        "aman", "ramah", "recomended", "murah", "berfungsi", "oke", "ok",
+        "joss", "berkualitas", "lengkap", "rapi", "packing", "mulus", "sesuai",
+        "deskripsi", "original", "ori", "tepat", "kilat", "cakep", "top", "puas"
+    }
+
+    for idx, res_list in enumerate(all_results):
         if not res_list:
             continue
-        # The first item is usually the top prediction
+            
         top_prediction = res_list[0]
-        label = top_prediction.get("label", "Neutral")
-        stats[label] = stats.get(label, 0) + 1
+        label = str(top_prediction.get("label", "Neutral")).lower()
+        stats[top_prediction.get("label", "Neutral")] = stats.get(top_prediction.get("label", "Neutral"), 0) + 1
+        
+        comment_text = str(comments[idx])
+        words = comment_text.lower().split()
+        cleaned_words = ["".join(filter(str.isalnum, w)) for w in words]
+        
+        # Collect negative info
+        if label == "negative":
+            if len(neg_reviews_sample) < 5:
+                neg_reviews_sample.append(comment_text)
+            for w in cleaned_words:
+                if w in NEG_KEYWORDS_LIST:
+                    neg_word_freq[w] = neg_word_freq.get(w, 0) + 1
+                    
+        # Collect positive info
+        elif label == "positive":
+            if len(pos_reviews_sample) < 5:
+                pos_reviews_sample.append(comment_text)
+            for w in cleaned_words:
+                if w in POS_KEYWORDS_LIST:
+                    pos_word_freq[w] = pos_word_freq.get(w, 0) + 1
 
-    # Re-map to lowercase labels for compatibility with frontend if needed, 
-    # but the model returns "Positive", "Negative", "Neutral"
-    
+    # Sort and get top keywords
+    top_neg_words = [word for word, count in sorted(neg_word_freq.items(), key=lambda x: x[1], reverse=True)[:10]]
+    top_pos_words = [word for word, count in sorted(pos_word_freq.items(), key=lambda x: x[1], reverse=True)[:10]]
+
     pos_count = stats.get("Positive", 0)
     neg_count = stats.get("Negative", 0)
     neu_count = stats.get("Neutral", 0)
     
-    # Calculate a simple average score: Positive=1, Neutral=0, Negative=-1
     average_score = (pos_count - neg_count) / total_count if total_count > 0 else 0
     
     return {
@@ -89,5 +135,8 @@ def get_sentiment_summary(comments):
         "negative_pct": round(neg_count / total_count * 100, 1) if total_count > 0 else 0,
         "neutral_pct": round(neu_count / total_count * 100, 1) if total_count > 0 else 0,
         "count": total_count,
-        "raw_stats": stats
+        "raw_stats": stats,
+        "negative_samples": neg_reviews_sample,
+        "top_negative_keywords": top_neg_words,
+        "top_positive_keywords": top_pos_words
     }
