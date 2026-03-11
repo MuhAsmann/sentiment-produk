@@ -1,61 +1,93 @@
 
-# List of Indonesian sentiment words (simplified for demo)
-# In production, use InSet Lexicon or a pre-trained model like IndoBERT
+import requests
+import time
+import os
+from dotenv import load_dotenv
 
-POSITIVE_WORDS = {
-    "bagus", "baik", "mantap", "keren", "puas", "cepat", "original", "asli",
-    "aman", "ramah", "recomended", "cepat", "murah", "berfungsi", "oke", "ok",
-    "terima", "kasih", "thanks", "joss", "original", "berkualitas", "lengkap",
-    "rapi", "packing", "respons", "kilat", "mulus", "sesuai", "deskripsi"
-}
+# Ensure .env variables are loaded
+load_dotenv()
 
-NEGATIVE_WORDS = {
-    "jelek", "buruk", "kecewa", "lambat", "lama", "palsu", "kw", "pecah",
-    "rusak", "mati", "mahal", "tidak", "kurang", "bohong", "penipu", "rugi",
-    "parah", "nyesel", "menyesal", "cacat", "error", "salah", "beda", "tipu"
-}
+# Hugging Face API settings
+HF_API_URL = os.getenv("HF_API_URL")
+HF_TOKEN = os.getenv("HF_TOKEN")
+if not HF_API_URL or not HF_TOKEN:
+    raise ValueError("HF_API_URL and HF_TOKEN must be set in environment variables")
 
-def analyze_sentiment(text):
-    if not text or not isinstance(text, str):
-        return 0, "neutral"
+def call_hf_api(inputs):
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {"inputs": inputs}
     
-    text = text.lower()
-    score = 0
-    words = text.split()
-    
-    for word in words:
-        if word in POSITIVE_WORDS:
-            score += 1
-        elif word in NEGATIVE_WORDS:
-            score -= 1
-            
-    if score > 0:
-        label = "positive"
-    elif score < 0:
-        label = "negative"
-    else:
-        label = "neutral"
-        
-    return score, label
+    # Simple retry logic for 503 errors (model loading)
+    for _ in range(5):
+        try:
+            response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 503:
+                # Model is loading
+                print(f"Model is loading, waiting 10 seconds...")
+                time.sleep(10)
+                continue
+            else:
+                print(f"HF API Error: {response.status_code} - {response.text}")
+                return None
+        except Exception as e:
+            print(f"Error calling HF API: {e}")
+            return None
+    return None
 
 def get_sentiment_summary(comments):
-    total_score = 0
-    count = len(comments)
-    if count == 0:
-        return {"average": 0, "positive": 0, "negative": 0, "neutral": 0, "count": 0}
+    if not comments:
+        return {"average": 0, "positive_pct": 0, "negative_pct": 0, "neutral_pct": 0, "count": 0, "raw_stats": {}}
+
+    stats = {"Positive": 0, "Negative": 0, "Neutral": 0}
+    total_count = len(comments)
     
-    stats = {"positive": 0, "negative": 0, "neutral": 0}
+    # Process in batches of 50 to avoid API limits
+    batch_size = 50
+    all_results = []
     
-    for comment in comments:
-        score, label = analyze_sentiment(comment)
-        total_score += score
-        stats[label] += 1
+    for i in range(0, total_count, batch_size):
+        batch = comments[i : i + batch_size]
+        # Ensure we're sending strings
+        batch = [str(c) for c in batch if c]
+        if not batch:
+            continue
+        results = call_hf_api(batch)
         
+        if results:
+            # results is a list of lists of dicts: [[{"label": "...", "score": ...}, ...], ...]
+            all_results.extend(results)
+        else:
+            # Add placeholders for failed batch
+            all_results.extend([[{"label": "Neutral", "score": 0.0}]] * len(batch))
+
+    for res_list in all_results:
+        if not res_list:
+            continue
+        # The first item is usually the top prediction
+        top_prediction = res_list[0]
+        label = top_prediction.get("label", "Neutral")
+        stats[label] = stats.get(label, 0) + 1
+
+    # Re-map to lowercase labels for compatibility with frontend if needed, 
+    # but the model returns "Positive", "Negative", "Neutral"
+    
+    pos_count = stats.get("Positive", 0)
+    neg_count = stats.get("Negative", 0)
+    neu_count = stats.get("Neutral", 0)
+    
+    # Calculate a simple average score: Positive=1, Neutral=0, Negative=-1
+    average_score = (pos_count - neg_count) / total_count if total_count > 0 else 0
+    
     return {
-        "average": round(total_score / count, 2),
-        "positive_pct": round(stats["positive"] / count * 100, 1),
-        "negative_pct": round(stats["negative"] / count * 100, 1),
-        "neutral_pct": round(stats["neutral"] / count * 100, 1),
-        "count": count,
+        "average": round(average_score, 2),
+        "positive_pct": round(pos_count / total_count * 100, 1) if total_count > 0 else 0,
+        "negative_pct": round(neg_count / total_count * 100, 1) if total_count > 0 else 0,
+        "neutral_pct": round(neu_count / total_count * 100, 1) if total_count > 0 else 0,
+        "count": total_count,
         "raw_stats": stats
     }

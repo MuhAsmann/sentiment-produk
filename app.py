@@ -1,5 +1,11 @@
 
 from flask import Flask, render_template, request, jsonify
+import os
+from dotenv import load_dotenv
+
+# Load env variables at the top
+load_dotenv()
+
 from utils.scraper import scrape_product
 from utils.sentiment import get_sentiment_summary
 import json

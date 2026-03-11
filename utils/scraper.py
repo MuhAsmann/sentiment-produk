@@ -150,9 +150,35 @@ def scrape_product(url):
         return get_mock_data(url)
     
     product_id = info["productID"]
-    reviews_data = get_reviews(product_id, page=1, limit=50)
+    all_reviews = []
+    target_count = 1000
+    page = 1
+    limit = 50
     
-    info["reviews"] = [r.get("message") for r in reviews_data if r.get("message")]
+    print(f"Fetching reviews for product ID: {product_id}...")
+    
+    while len(all_reviews) < target_count:
+        print(f"Fetching page {page}...")
+        reviews_data = get_reviews(product_id, page=page, limit=limit)
+        
+        if not reviews_data:
+            print("No more reviews found.")
+            break
+            
+        page_reviews = [r.get("message") for r in reviews_data if r.get("message")]
+        all_reviews.extend(page_reviews)
+        
+        # If we got fewer reviews than the limit, it's likely the last page
+        if len(reviews_data) < limit:
+            print("Reached last page.")
+            break
+            
+        page += 1
+        # Moderate sleep to avoid being blocked
+        time.sleep(random.uniform(0.5, 1.5))
+    
+    info["reviews"] = all_reviews[:target_count]
+    print(f"Collected {len(info['reviews'])} reviews.")
     return info
 
 def get_mock_data(url):
